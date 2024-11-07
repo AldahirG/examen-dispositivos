@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "46413022841",
+    "project_id": "examen-dispositivos-66717",
+    "storage_bucket": "examen-dispositivos-66717.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:46413022841:android:ee475f5833e423098076a8",
+        "android_client_info": {
+          "package_name": "com.example.examen_dispositivos"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCiEtq_IGqkammt0F1Mwlg2YZIr8tzkF1g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
