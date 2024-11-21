@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'product_details_view.dart';
+import 'profile_view.dart';
 
 class ProductsView extends StatefulWidget {
   @override
@@ -9,37 +10,61 @@ class ProductsView extends StatefulWidget {
 
 class _ProductsViewState extends State<ProductsView> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  int _currentIndex = 0;
 
-  // Controladores para los datos de los productos
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _priceController = TextEditingController();
-  final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _imageController = TextEditingController();
+  final List<Widget> _pages = [
+    ProductsViewBody(),
+    ProfileView(), // Tu vista de perfil
+  ];
 
-  // Función para agregar un nuevo producto a Firestore
-  Future<void> _addProduct() async {
-    await _firestore.collection('productos').add({
-      'description': _descriptionController.text,
-      'imagen': _imageController.text,
-      'precio': double.tryParse(_priceController.text) ?? 0,
-    });
-    _nameController.clear();
-    _priceController.clear();
-    _descriptionController.clear();
-    _imageController.clear();
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _pages[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.list),
+            label: 'Vehículos',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Perfil',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Cuerpo de la vista de productos (listado de vehículos)
+class ProductsViewBody extends StatefulWidget {
+  @override
+  _ProductsViewBodyState createState() => _ProductsViewBodyState();
+}
+
+class _ProductsViewBodyState extends State<ProductsViewBody> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  Future<void> _addVehicle(Map<String, dynamic> newVehicle) async {
+    await _firestore.collection('vehicles').add(newVehicle);
   }
 
-  // Función para eliminar un producto de Firestore
-  Future<void> _deleteProduct(String productId) async {
-    await _firestore.collection('productos').doc(productId).delete();
+  Future<void> _deleteVehicle(String vehicleId) async {
+    await _firestore.collection('vehicles').doc(vehicleId).delete();
   }
 
-  // Función para navegar a la vista de detalles del producto
-  void _navigateToDetails(Map<String, dynamic> productData) {
+  void _navigateToDetails(Map<String, dynamic> vehicleData) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ProductDetailsView(productData: productData),
+        builder: (context) => ProductDetailsView(productData: vehicleData),
       ),
     );
   }
@@ -48,72 +73,46 @@ class _ProductsViewState extends State<ProductsView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Productos'),
-        backgroundColor: Colors.pink[100],
+        title: Text('Vehículos'),
+        backgroundColor: Colors.blue[100],
         elevation: 0,
       ),
       body: StreamBuilder(
-        stream: _firestore.collection('productos').snapshots(),
+        stream: _firestore.collection('vehicles').snapshots(),
         builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(child: Text('No hay productos disponibles'));
+            return Center(child: Text('No hay vehículos disponibles'));
           }
 
           return ListView(
             padding: EdgeInsets.all(16.0),
-            children: snapshot.data!.docs.map((product) {
-              Map<String, dynamic> data = product.data() as Map<String, dynamic>;
-              String tagText;
-              Color tagColor;
-
-              // Determina el texto y color del tag según el precio
-              if (data['precio'] > 1000) {
-                tagText = 'Gasto alto';
-                tagColor = Colors.red;
-              } else if (data['precio'] <= 1000 && data['precio'] >= 500) {
-                tagText = 'Cuidado';
-                tagColor = Colors.orange;
-              } else {
-                tagText = 'Bajo';
-                tagColor = Colors.green;
-              }
+            children: snapshot.data!.docs.map((vehicle) {
+              Map<String, dynamic> data = vehicle.data() as Map<String, dynamic>;
 
               return GestureDetector(
                 onTap: () => _navigateToDetails(data),
                 child: Card(
                   margin: EdgeInsets.symmetric(vertical: 8.0),
                   child: ListTile(
-                    leading: Image.network(
-                      data['imagen'],
-                      width: 50,
-                      height: 50,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Icon(Icons.broken_image),
+                    leading: data['imageUrl'] != null && data['imageUrl'].isNotEmpty
+                        ? Image.network(
+                            data['imageUrl'],
+                            width: 50,
+                            height: 50,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Icon(Icons.broken_image),
+                          )
+                        : Icon(Icons.directions_car, size: 40),
+                    title: Text('Poliza: ${data['numeroPoliza']}'),
+                    subtitle: Text(
+                      '${data['marca']} - ${data['modelo']}\nExpira: ${data['fechaExpiracion']}',
                     ),
-                    title: Text('\$${data['precio']}'),
-                    subtitle: Text(data['description']),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                          decoration: BoxDecoration(
-                            color: tagColor,
-                            borderRadius: BorderRadius.circular(4.0),
-                          ),
-                          child: Text(
-                            tagText,
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => _deleteProduct(product.id),
-                        ),
-                      ],
+                    trailing: IconButton(
+                      icon: Icon(Icons.delete, color: Colors.red),
+                      onPressed: () => _deleteVehicle(vehicle.id),
                     ),
                   ),
                 ),
@@ -123,75 +122,108 @@ class _ProductsViewState extends State<ProductsView> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddProductDialog(),
+        onPressed: () => _showAddVehicleDialog(),
         backgroundColor: Colors.green,
         child: const Icon(Icons.add),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bluetooth),
-            label: 'Bluetooth',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.list),
-            label: 'Gastos',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Perfil',
-          ),
-        ],
-        onTap: (index) {
-          if (index == 2) {
-            Navigator.pushNamed(context, '/profile'); // Navega a la vista de perfil
-          }
-        },
-      ),
-
     );
   }
 
-  // Diálogo para agregar un nuevo producto
-  void _showAddProductDialog() {
+  void _showAddVehicleDialog() {
+    String? numeroPoliza;
+    String? marca;
+    String? modelo;
+    String? imageUrl;
+    DateTime? fechaExpiracion;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Añadir Producto'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _descriptionController,
-              decoration: InputDecoration(labelText: 'Descripción'),
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Añadir Vehículo'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  decoration: InputDecoration(labelText: 'Número de Póliza'),
+                  onChanged: (value) => numeroPoliza = value,
+                ),
+                TextField(
+                  decoration: InputDecoration(labelText: 'Marca'),
+                  onChanged: (value) => marca = value,
+                ),
+                TextField(
+                  decoration: InputDecoration(labelText: 'Modelo'),
+                  onChanged: (value) => modelo = value,
+                ),
+                TextField(
+                  decoration: InputDecoration(labelText: 'URL de la Imagen'),
+                  onChanged: (value) => imageUrl = value,
+                ),
+                SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        fechaExpiracion == null
+                            ? 'Selecciona una fecha de expiración'
+                            : 'Fecha de Expiración: ${fechaExpiracion!.day}/${fechaExpiracion!.month}/${fechaExpiracion!.year}',
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.calendar_today),
+                      onPressed: () async {
+                        final DateTime? pickedDate = await showDatePicker(
+                          context: context,
+                          initialDate: DateTime.now(),
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime(2100),
+                        );
+                        if (pickedDate != null) {
+                          setState(() {
+                            fechaExpiracion = pickedDate;
+                          });
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ],
             ),
-            TextField(
-              controller: _priceController,
-              decoration: InputDecoration(labelText: 'Precio'),
-              keyboardType: TextInputType.number,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancelar'),
             ),
-            TextField(
-              controller: _imageController,
-              decoration: InputDecoration(labelText: 'URL de Imagen'),
+            ElevatedButton(
+              onPressed: () {
+                if (numeroPoliza != null &&
+                    marca != null &&
+                    modelo != null &&
+                    fechaExpiracion != null) {
+                  final newVehicle = {
+                    'numeroPoliza': numeroPoliza,
+                    'marca': marca,
+                    'modelo': modelo,
+                    'fechaExpiracion':
+                        '${fechaExpiracion!.day}-${fechaExpiracion!.month}-${fechaExpiracion!.year}',
+                    'imageUrl': imageUrl ?? '',
+                  };
+                  _addVehicle(newVehicle);
+                  Navigator.pop(context);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Por favor, completa todos los campos')),
+                  );
+                }
+              },
+              child: Text('Añadir'),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              _addProduct();
-              Navigator.pop(context);
-            },
-            child: Text('Añadir'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

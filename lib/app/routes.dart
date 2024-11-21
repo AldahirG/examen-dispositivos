@@ -4,7 +4,7 @@ import '../views/auth/login_view.dart';
 import '../views/auth/register_view.dart';
 import '../views/loading_view.dart';
 import '../views/products_view.dart';
-import '../views/profile_view.dart'; // Asegúrate de importar profile_view
+import '../views/profile_view.dart';
 
 class AppRoutes {
   static const String home = '/';
@@ -27,7 +27,7 @@ class AppRoutes {
       case products:
         return MaterialPageRoute(builder: (_) => ProductsView());
       case profile:
-        return MaterialPageRoute(builder: (_) => ProfileView()); // Ruta de perfil
+        return MaterialPageRoute(builder: (_) => ProfileView());
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(

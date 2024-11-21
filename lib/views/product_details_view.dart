@@ -10,22 +10,29 @@ class ProductDetailsView extends StatelessWidget {
     String tagText;
     Color tagColor;
 
-    // Determina el texto y color del tag según el precio
-    if (productData['precio'] > 1000) {
-      tagText = 'Gasto alto';
+    final DateTime currentDate = DateTime.now();
+    final List<String> dateParts = productData['fechaExpiracion'].split('-'); 
+    final DateTime expirationDate = DateTime(
+      int.parse(dateParts[2]), 
+      int.parse(dateParts[1]), 
+      int.parse(dateParts[0]), 
+    );
+
+    if (expirationDate.isBefore(currentDate)) {
+      tagText = 'Póliza expirada';
       tagColor = Colors.red;
-    } else if (productData['precio'] <= 1000 && productData['precio'] >= 500) {
-      tagText = 'Cuidado';
+    } else if (expirationDate.difference(currentDate).inDays <= 30) {
+      tagText = 'Póliza próxima a expirar';
       tagColor = Colors.orange;
     } else {
-      tagText = 'Bajo';
+      tagText = 'Póliza al corriente';
       tagColor = Colors.green;
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(productData['description']),
-        backgroundColor: Colors.pink[100],
+        title: Text('Detalles del Vehículo'),
+        backgroundColor: Colors.blue[100],
         elevation: 0,
       ),
       body: Padding(
@@ -36,13 +43,20 @@ class ProductDetailsView extends StatelessWidget {
             Stack(
               children: [
                 Center(
-                  child: Image.network(
-                    productData['imagen'],
-                    width: 150,
-                    height: 150,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Icon(Icons.broken_image, size: 100),
-                  ),
+                  child: productData['imageUrl'] != null && productData['imageUrl'].isNotEmpty
+                      ? Image.network(
+                          productData['imageUrl'],
+                          width: 200,
+                          height: 200,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              Icon(Icons.broken_image, size: 100),
+                        )
+                      : Icon(
+                          Icons.directions_car,
+                          size: 100,
+                          color: Colors.blueAccent,
+                        ),
                 ),
                 Positioned(
                   top: 10,
@@ -55,7 +69,7 @@ class ProductDetailsView extends StatelessWidget {
                     ),
                     child: Text(
                       tagText,
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -63,22 +77,23 @@ class ProductDetailsView extends StatelessWidget {
             ),
             SizedBox(height: 20),
             Text(
-              productData['description'],
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              'Número de Póliza: ${productData['numeroPoliza']}',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 8),
+            SizedBox(height: 10),
             Text(
-              'Precio: \$${productData['precio']}',
-              style: TextStyle(fontSize: 20),
+              'Marca: ${productData['marca']}',
+              style: TextStyle(fontSize: 18),
             ),
-            SizedBox(height: 8),
+            SizedBox(height: 10),
             Text(
-              'Descripción:',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              'Modelo: ${productData['modelo']}',
+              style: TextStyle(fontSize: 18),
             ),
+            SizedBox(height: 10),
             Text(
-              productData['description'],
-              style: TextStyle(fontSize: 16),
+              'Fecha de Expiración: ${productData['fechaExpiracion']}',
+              style: TextStyle(fontSize: 18),
             ),
           ],
         ),
